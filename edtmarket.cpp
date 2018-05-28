@@ -1,10 +1,16 @@
 #include "edtmarket.hpp"
+#include <eosiolib/system.h>
 
 using namespace eosio;
 
 edtmarket::edtmarket(account_name s)
     : contract(s),
-      _weights(_self, s)
+      _weights(_self, s),
+      _contract_vote_weight(1),
+      _user_vote_weight(1),
+      _contract_time_weight(1),
+      _user_time_weight(1),
+      _max_time_limit(60 * 24 * 30 * 3)  // 90 days
 {
 }
 
@@ -32,23 +38,42 @@ void edtmarket::vote(name from, name to, asset quantity, bool yeas)
     //asset f_balance = eosdactoken(tokenContract).get_balance(from, quantity.symbol.name());
     //eosio_assert(f_balance.amount >= quantity.amount, "overddrawn balance");
 
+    int64_t vote_weight = 1, time_weight = 1;
+    if (is_contract_account(from)) {
+        vote_weight = _contract_vote_weight;
+        time_weight = _contract_time_weight;
+    } else {
+        vote_weight = _user_vote_weight;
+        time_weight = _user_time_weight;
+    }
+
+    uint32_t minutes = now() / 60;
     auto to_weight = _weights.find(to);
     if (to_weight == _weights.end()) {
         _weights.emplace(_self, [&](auto& a){
             a.owner = to;
-            a.weight = quantity.amount * (yeas ? 1 : -1);
-            print("lambda\n");
+            a.weight = quantity.amount * (yeas ? vote_weight : (-1 * vote_weight))
+                    + ((minutes - a.last_vote_time) > _max_time_limit ? _max_time_limit : (minutes - a.last_vote_time)) * (yeas ? time_weight : (-1 * time_weight));
+            a.last_vote_time = minutes;
         });
-        print("new vote\n");
     } else {
         _weights.modify(to_weight, _self, [&](auto& a){
-            a.weight += quantity.amount * (yeas ? 1 : -1);
-            print("lambda\n");
+            a.weight += (quantity.amount * (yeas ? vote_weight : (-1 * vote_weight))
+                    + ((minutes - a.last_vote_time) > _max_time_limit ? _max_time_limit : (minutes - a.last_vote_time)) * (yeas ? time_weight : (-1 * time_weight)));
+            a.last_vote_time = minutes;
         });
-        print("normal vote\n");
     }
+}
 
-    print("vote success");
+void edtmarket::configvote(int64_t contract_vote_weight, int64_t user_vote_weight, int64_t contract_time_weight, int64_t user_time_weight, int64_t max_time_limit)
+{
+    require_auth(_self);
+
+    _contract_time_weight = contract_vote_weight;
+    _user_vote_weight = user_vote_weight;
+    _contract_time_weight = contract_time_weight;
+    _user_time_weight = user_time_weight;
+    _max_time_limit = max_time_limit;
 }
 
 bool edtmarket::is_contract_account(name name)
@@ -57,4 +82,4 @@ bool edtmarket::is_contract_account(name name)
     return false;
 }
 
-EOSIO_ABI( edtmarket, (vote) )
+EOSIO_ABI( edtmarket, (configvote) (vote) )
