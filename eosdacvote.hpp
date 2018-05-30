@@ -32,11 +32,11 @@ struct weight_info
 
 typedef eosio::multi_index<N(weights), weight_info> weight_table;
 
-class edtmarket : public eosio::contract
+class eosdacvote : public eosio::contract
 {
 public:
-    edtmarket(account_name s);
-    ~edtmarket();
+    eosdacvote(account_name s);
+    ~eosdacvote();
 
     // @abi action
     void vote(name from,

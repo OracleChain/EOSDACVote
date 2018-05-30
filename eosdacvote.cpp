@@ -1,9 +1,9 @@
-#include "edtmarket.hpp"
+#include "eosdacvote.hpp"
 #include <eosiolib/system.h>
 
 using namespace eosio;
 
-edtmarket::edtmarket(account_name s)
+eosdacvote::eosdacvote(account_name s)
     : contract(s),
       _weights(_self, s),
       _contract_vote_weight(1),
@@ -14,11 +14,11 @@ edtmarket::edtmarket(account_name s)
 {
 }
 
-edtmarket::~edtmarket()
+eosdacvote::~eosdacvote()
 {
 }
 
-void edtmarket::vote(name from, name to, asset quantity, bool yeas)
+void eosdacvote::vote(name from, name to, asset quantity, bool yeas)
 {
     eosio_assert(from != to, "cannot vote to self");    // can I ?
     eosio_assert(is_account(from), "Invalid account");
@@ -65,7 +65,7 @@ void edtmarket::vote(name from, name to, asset quantity, bool yeas)
     }
 }
 
-void edtmarket::configvote(int64_t contract_vote_weight, int64_t user_vote_weight, int64_t contract_time_weight, int64_t user_time_weight, int64_t max_time_limit)
+void eosdacvote::configvote(int64_t contract_vote_weight, int64_t user_vote_weight, int64_t contract_time_weight, int64_t user_time_weight, int64_t max_time_limit)
 {
     require_auth(_self);
 
@@ -76,10 +76,10 @@ void edtmarket::configvote(int64_t contract_vote_weight, int64_t user_vote_weigh
     _max_time_limit = max_time_limit;
 }
 
-bool edtmarket::is_contract_account(name name)
+bool eosdacvote::is_contract_account(name name)
 {
     // if cleos get code {name} returns no zero, means contract account
     return false;
 }
 
-EOSIO_ABI( edtmarket, (configvote) (vote) )
+EOSIO_ABI( eosdacvote, (configvote) (vote) )
